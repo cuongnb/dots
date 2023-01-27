@@ -1,6 +1,3 @@
-;; Unbind unneeded keys
-(global-set-key (kbd "C-z") nil)
-
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 ;; Comment/uncomment this line to enable MELPA Stable if desired.  See `package-archive-priorities`
@@ -229,7 +226,19 @@
         :init (global-set-key (kbd "C-x u") #'vundo)
         :config (define-key vundo-mode-map (kbd "q") #'vundo-confirm))                        
 
+;;; org, alert
+(use-package org-alert
+  :ensure t)
+(setq org-alert-interval 300
+      org-alert-notify-cutoff 10
+      org-alert-notify-after-event-cutoff 10)
+
+;; Unbind unneeded keys
+(global-set-key (kbd "C-z") nil)
 (global-set-key (kbd "M-o") 'mode-line-other-buffer)
+(global-set-key (kbd "C-x / o") 'org-agenda)
+(global-set-key (kbd "C-x 2") 'split-window-vertically-last-buffer)
+(global-set-key (kbd "C-x 3") 'split-window-horizontally-last-buffer)
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -237,6 +246,7 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(menu-bar-mode nil)
+; '(org-agenda-files nil
  '(package-selected-packages
    '(vundo rainbow-delimiters magit markdown-mode dracula-theme beacon orderless project marginalia vertico use-package docbook)))
 (custom-set-faces
@@ -246,3 +256,30 @@
  ;; If there is more than one, they won't work right.
  )
 ;; Unbind unneeded keys
+
+(defun split-window-vertically-last-buffer (prefix)
+  "Slip window vertically.
+- PREIFIX default(1) is switch to last buffer"
+  (interactive "p")
+  (split-window-vertically) (other-window 1 nil)
+  (if (= prefix 1) (switch-to-next-buffer)))
+
+(defun split-window-horizontally-last-buffer (prefix)
+  "Split window horizontally
+- PREFIX default(1) is switch to last buffer"
+  (interactive "p")
+  (split-window-horizontally) (other-window 1 nil)
+  (if (= prefix 1) (switch-to-next-buffer)))
+
+(defun today(&optional prefix)
+  "Go to daily."
+  (interactive "P")
+  (let ((file-format "~/worklogs/%s/%s.org")
+	(today (if prefix (org-read-date)
+		 (format-time-string "%Y-%m-%d" (current-time)))))
+    (find-file (format file-format today today))))
+    
+    
+(mapc (lambda (x) (add-to-list 'org-agenda-files x))
+      (append
+       (directory-files-recursively "~/worklogs" ".org$")))
