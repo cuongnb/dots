@@ -10,8 +10,6 @@
   (package-refresh-contents)
   (package-install 'use-package))
 
-
-
 ;;; COMPLETION SYSTEM: vertico, orderless, marginalia, consult, embark
 
 (use-package vertico
@@ -131,6 +129,18 @@
     (with-eval-after-load 'embark
       (require 'embark-consult))))
 
+(use-package multiple-cursors
+  :ensure t :defer t
+  :bind
+  ("C-c c a" . mc/mark-all-like-this)
+  ("C-c c n" . mc/mark-next-like-this)
+  ("C-c c p" . mc/mark-previous-like-this)
+  ("C-c c l" . mc/edit-lines)
+  ("C-c c r" . mc/mark-all-in-region))
+
+;; (use-package shell-command+
+;;   :ensure t :defer t
+;;   :init (global-set-key (kbd "M-!") #'shell-command+))
 
 ;;
 (use-package xclip ;; -- don't use xsel
@@ -151,8 +161,6 @@
   :ensure t :defer t
   :hook (after-init . beacon-mode))
 
-
-
 (use-package dracula-theme
   :ensure t
   :init (load-theme 'dracula t))
@@ -169,11 +177,85 @@
 
 
 ;;PROGRAMING
+(use-package json-mode
+  :ensure t)
 
-;; Buildsystem
-;; docker
-(use-package docker :defer t)
-(use-package dockerfile-mode :defer t)
+(use-package restclient
+  :ensure t
+  :defer t
+  :mode (("\\.http\\'" . restclient-mode))
+  :bind (:map restclient-mode-map
+	      ("C-c C-f" . json-mode-beautify)))
+
+(defun develop-docker()
+  "Docker tools."
+  (interactive)
+  (package-installs 'dockerfile-mode 'docker 'docker-tramp 'docker-compose-mode))
+(use-package docker :defer t
+  :config (setq docker-run-async-with-buffer-function #'docker-run-async-with-buffer-shell))
+
+
+;;; COMPLETION CODE: corfu, yasnippet, eglot, dumb-jump
+(use-package corfu
+  :ensure t :defer t
+  :init (global-corfu-mode)
+  :bind
+  (:map corfu-map
+        ("M-m" . corfu-move-to-minibuffer)
+        ("TAB" . corfu-complete-common-or-next) ;; Use TAB for cycling, default is `corfu-complete'.
+        ([tab] . corfu-complete-common-or-next)
+        ("S-TAB" . corfu-previous)
+        ([backtab] . corfu-previous))
+  :config
+  (unless (display-graphic-p)
+    (use-package corfu-terminal
+      :ensure t :defer t
+      :init (add-hook 'corfu-mode-hook #'corfu-terminal-mode)))
+  (setq completion-cycle-threshold 3
+        corfu-auto t
+        corfu-cycle t
+        corfu-auto-prefix 2
+        corfu-preselect-first nil
+        corfu-history-mode t)
+  (defvar-local corfu-common-old nil)
+  (defun corfu-complete-common-or-next ()
+    "Complete common prefix or go to next candidate (@minad/corfu#170)."
+    (interactive)
+    (if (= corfu--total 1)
+        (if (not (thing-at-point 'filename))
+            (progn
+              (corfu--goto 1)
+              (corfu-insert))))
+    (let* ((input (car corfu--input))
+           (str (if (thing-at-point 'filename) (file-name-nondirectory input) input))
+           (pt (length str))
+           (common (try-completion str corfu--candidates)))
+      (if (and (> pt 0)
+               (stringp common)
+               (not (string= str common)))
+          (insert (substring common pt))
+        (if (equal common corfu-common-old)
+            (corfu-next)))
+      (setq-local corfu-common-old common)))
+  (put 'corfu-complete-common-or-next 'completion-predicate #'ignore)
+  (defun corfu-enable-in-minibuffer ()
+    "Enable Corfu in the minibuffer if `completion-at-point' is bound."
+    (when (where-is-internal #'completion-at-point (list (current-local-map)))
+      (setq-local corfu-auto nil)
+      (corfu-mode 1)))
+  (add-hook 'minibuffer-setup-hook #'corfu-enable-in-minibuffer)
+  (defun corfu-move-to-minibuffer ()
+    "Move completion to minibuffer instead of corfu."
+    (interactive)
+    (let ((completion-extra-properties corfu--extra)
+          completion-cycle-threshold completion-cycling)
+      (apply #'consult-completion-in-region completion-in-region--data))))
+
+
+;; ;; Buildsystem
+;; ;; docker
+;; (use-package docker :defer t)
+;; (use-package dockerfile-mode :defer t)
 
 ;; insert,wrap,unwrap,rewrap
 (use-package smartparens
@@ -233,6 +315,17 @@
       org-alert-notify-cutoff 10
       org-alert-notify-after-event-cutoff 10)
 
+
+;;; CUSTOMIZE
+(defun add-to-hooks (func &rest hooks)
+  "Add FUNC to mutil HOOKS."
+  (dolist (hook hooks) (add-hook hook func)))
+;; enable whitespace-mode
+(add-to-hooks 'whitespace-mode
+              'prog-mode-hook 'org-mode-hook
+              'markdown-mode-hook 'yaml-mode-hook
+              'dockerfile-mode-hook)
+
 ;; Unbind unneeded keys
 (global-set-key (kbd "C-z") nil)
 (global-set-key (kbd "M-o") 'mode-line-other-buffer)
@@ -246,9 +339,8 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(menu-bar-mode nil)
-; '(org-agenda-files nil
  '(package-selected-packages
-   '(vundo rainbow-delimiters magit markdown-mode dracula-theme beacon orderless project marginalia vertico use-package docbook)))
+   '(corfu-terminal corfu shell-command+ multiple-cursors restclient vundo rainbow-delimiters magit markdown-mode dracula-theme beacon orderless project marginalia vertico use-package docbook)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

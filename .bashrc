@@ -117,3 +117,4 @@ export JAVA_HOME='/usr/lib/jvm/java-11-openjdk-amd64'
 alias mvn11="JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64 && mvn"
 alias mvn8="JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64 && mvn"
 alias em="emacs -nw"
+
