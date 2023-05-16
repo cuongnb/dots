@@ -30,7 +30,6 @@
   :bind (:map vertico-map ("M-DEL" . vertico-directory-delete-word))
   :hook (rfn-eshadow-update-overlay . vertico-directory-tidy))
 
-
 (use-package marginalia
   :ensure t
   :defer t
@@ -43,7 +42,6 @@
    '(orderless-regexp orderless-literal orderless-initialism))
   (completion-styles '(orderless))
   (completion-category-defaults nil))
-
 
 (use-package consult
   :ensure t :defer t
@@ -79,7 +77,7 @@
   :config
   (setq register-preview-delay 0
         register-preview-function #'consult-register-format
-        consult-preview-key (kbd "C-l"))
+        consult-preview-key "C-l" )
   (setf (alist-get 'slime-repl-mode consult-mode-histories)
         'slime-repl-input-history)
   (defun consult-thing-at-point ()
@@ -108,6 +106,24 @@
         (deactivate-mark))
       (consult-line (regexp-quote thing)))))
 
+(use-package crux
+  :ensure t :defer t
+  :bind
+  ("C-^" . crux-top-join-line)
+  ("C-a" . crux-move-beginning-of-line)
+  ("C-o" . crux-smart-open-line-above)
+  ("C-c c" . crux-create-scratch-buffer)
+  ("C-c d" . crux-duplicate-current-line-or-region)
+  ("C-c M-d" . crux-duplicate-and-comment-current-line-or-region)
+  ("C-c D" . crux-delete-file-and-buffer)
+  ("C-c r" . crux-rename-buffer-and-file)
+  ("C-c s" . crux-visit-shell-buffer)
+  ("C-c t" . crux-visit-term-buffer)
+  ("C-c T" . crux-visit-vterm-buffer)
+  ("C-h RET" . crux-find-user-init-file)
+  ("C-x / e" . crux-open-with)
+  ("C-x 7" . crux-swap-windows))
+
 (use-package embark
   :ensure t :defer t
   :bind ("C-c /" . embark-act)
@@ -132,11 +148,11 @@
 (use-package multiple-cursors
   :ensure t :defer t
   :bind
-  ("C-c c a" . mc/mark-all-like-this)
-  ("C-c c n" . mc/mark-next-like-this)
-  ("C-c c p" . mc/mark-previous-like-this)
-  ("C-c c l" . mc/edit-lines)
-  ("C-c c r" . mc/mark-all-in-region))
+  ("C-c e a" . mc/mark-all-like-this)
+  ("C-c e n" . mc/mark-next-like-this)
+  ("C-c e p" . mc/mark-previous-like-this)
+  ("C-c e l" . mc/edit-lines)
+  ("C-c e r" . mc/mark-all-in-region))
 
 ;; (use-package shell-command+
 ;;   :ensure t :defer t
@@ -150,11 +166,15 @@
             (lambda()(require 'xclip nil t)
               (ignore-errors (xclip-mode)))))
 
+(use-package restclient
+  :ensure t
+  :mode ("\\.rest\\'" . restclient-mode))
+
 ;;; VERSION CONTROL: git-gutter, magit, git-link
 (use-package magit
   :ensure t :defer t
   :bind ("C-x g" . magit-status))
-  
+
 ;;; DISPLAY
 ;; highlight cursor
 (use-package beacon
@@ -250,6 +270,40 @@
     (let ((completion-extra-properties corfu--extra)
           completion-cycle-threshold completion-cycling)
       (apply #'consult-completion-in-region completion-in-region--data))))
+(use-package cape
+  :ensure t :defer t
+  :bind (("C-c p p" . completion-at-point) ;; capf
+         ("C-c p t" . complete-tag)        ;; etags
+         ("C-c p d" . cape-dabbrev)        ;; or dabbrev-completion
+         ("C-c p h" . cape-history)
+         ("C-c p f" . cape-file)
+         ("C-c p k" . cape-keyword)
+         ("C-c p s" . cape-symbol)
+         ("C-c p a" . cape-abbrev)
+         ("C-c p i" . cape-ispell)
+         ("C-c p l" . cape-line)
+         ("C-c p w" . cape-dict))
+  :init
+  (add-to-list 'completion-at-point-functions #'cape-dabbrev)
+  (add-to-list 'completion-at-point-functions #'cape-file))
+(use-package yasnippet
+  :ensure t :defer t
+  :hook (after-init . yas-global-mode)
+  :config
+  (setq yas-lighter " υ")
+  (define-key yas-minor-mode-map [(tab)] nil)
+  (define-key yas-minor-mode-map (kbd "TAB") nil))
+(use-package yasnippet-snippets
+  :ensure t :defer t)
+(use-package consult-yasnippet
+  :ensure t :defer t
+  :init (global-set-key (kbd "M-]") #'completion-customize)
+  (defun completion-customize(&optional prefix)
+    "Complete and Yasnippet(PREFIX)."
+    (interactive "P")
+    (if prefix
+        (consult-yasnippet nil)
+      (call-interactively 'completion-at-point))))
 
 
 ;; ;; Buildsystem
@@ -304,9 +358,9 @@
   ("M-g l" . avy-goto-line))
 
 (use-package vundo
-        :ensure t :defer t
-        :init (global-set-key (kbd "C-x u") #'vundo)
-        :config (define-key vundo-mode-map (kbd "q") #'vundo-confirm))                        
+  :ensure t :defer t
+  :init (global-set-key (kbd "C-x u") #'vundo)
+  :config (define-key vundo-mode-map (kbd "q") #'vundo-confirm))                        
 
 ;;; org, alert
 (use-package org-alert
@@ -333,14 +387,21 @@
 (global-set-key (kbd "C-x 2") 'split-window-vertically-last-buffer)
 (global-set-key (kbd "C-x 3") 'split-window-horizontally-last-buffer)
 
+(set-default-coding-systems 'utf-8)
+(prefer-coding-system 'utf-8)
+(setq select-safe-coding-system-function t
+      create-lockfiles nil
+      auto-save-file-name-transforms `((".*" ,temporary-file-directory t))
+      backup-directory-alist `((".*" . ,temporary-file-directory)))
+
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(menu-bar-mode nil)
- '(package-selected-packages
-   '(corfu-terminal corfu shell-command+ multiple-cursors restclient vundo rainbow-delimiters magit markdown-mode dracula-theme beacon orderless project marginalia vertico use-package docbook)))
+ '(whitespace-style
+   '(face tabs trailing space-before-tab newline empty tab-mark)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
@@ -370,8 +431,13 @@
 	(today (if prefix (org-read-date)
 		 (format-time-string "%Y-%m-%d" (current-time)))))
     (find-file (format file-format today today))))
-    
-    
+
+
 (mapc (lambda (x) (add-to-list 'org-agenda-files x))
       (append
        (directory-files-recursively "~/worklogs" ".org$")))
+
+;; Load personal
+(let ((personal-settings (locate-user-emacs-file "personal.el")))
+  (when (file-exists-p personal-settings)
+    (load-file personal-settings)))
